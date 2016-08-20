@@ -26,13 +26,15 @@ public class Main extends Application implements Initializable, Observer {
 
 	public ListView<String> leftListView = new ListView<>();
 
-	public List<Project> projects = Project.getProjects(p -> !p.isEnded());
 	public Label timePassed = new Label("Select a project");
 	public Tab tabMore;
 	public Tab tabTimer;
 	public GridPane gridTimeSpent;
 	public Button cmdSessionStart = new Button();
+
 	private int selectedProject = -1;
+	private boolean sessionInUse = false;
+	private List<Project> projects = Project.getProjects(p -> !p.isEnded());
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
@@ -41,6 +43,12 @@ public class Main extends Application implements Initializable, Observer {
 
 		primaryStage.setScene(new Scene(root));
 		primaryStage.show();
+		primaryStage.setOnCloseRequest(e -> {
+			if (sessionInUse) {
+				projects.get(selectedProject).stopSession();
+			}
+			Project.saveAllProjects();
+		});
 	}
 
 	public static void main(String[] args) {
@@ -55,30 +63,40 @@ public class Main extends Application implements Initializable, Observer {
 
 		projects.forEach(p -> p.addObserver(this));
 
-		leftListView.setOnMouseClicked(e -> select(leftListView.getSelectionModel().getSelectedIndex()));
-
 		cmdSessionStart.setVisible(false);
+
+		leftListView.setOnMouseClicked(e -> select(leftListView.getSelectionModel().getSelectedIndex()));
 	}
 
 	private void select(int index) {
-		if (index >= 0 && index < projects.size()) {
-			selectedProject = index;
-			cmdSessionStart.setVisible(true);
-			timePassed.setText(projects.get(index).getTimeOn());
-		} else {
+		if (index < 0 || index >= projects.size()) {
 			timePassed.setText("Select a project");
+			cmdSessionStart.setVisible(false);
+		} else if (index != selectedProject) {
+			cmdSessionStart.setVisible(true);
+			if (sessionInUse) {
+				session(null);
+			}
+			timePassed.setText(projects.get(index).getTimeOn());
+
+			selectedProject = index;
 		}
 	}
 
 	public void session(ActionEvent event) {
-		if(cmdSessionStart.isVisible()) {
+		if (!sessionInUse) {
 			projects.get(selectedProject).startSession();
-			cmdSessionStart.setVisible(false);
+			cmdSessionStart.setText("Stop session");
+		} else {
+			projects.get(selectedProject).stopSession();
+			cmdSessionStart.setText("Start session");
 		}
+
+		sessionInUse = !sessionInUse;
 	}
 
 	@Override
 	public void update(Observable o, Object arg) {
-		timePassed.setText(((Project)o).getTimeOn());
+		timePassed.setText(((Project) o).getTimeOn());
 	}
 }

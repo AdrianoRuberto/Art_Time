@@ -22,10 +22,10 @@ public class Project extends Observable implements Serializable {
 	private Date begin;
 	private long timeOn;
 	private Date end;
-	Timer timer = new java.util.Timer();
+	private Timer timer;
 
 	public Project(String name) {
-		this(name, new Date(), -1, new Date(-1));
+		this(name, new Date(), 0, new Date(-1));
 	}
 
 	private Project(String name, Date begin, long timer, Date end) {
@@ -64,6 +64,17 @@ public class Project extends Observable implements Serializable {
 		}
 	}
 
+	public static void saveAllProjects() {
+		try {
+			Files.write(Paths.get(PROJECTS_PATH), projects.stream()
+			                                              .map(p -> p.name + ";" + p.begin.getTime() + ";" + p.timeOn + ";" + p.end.getTime())
+			                                              .collect(Collectors.toList()));
+		} catch (IOException e) {
+			System.out.println("Impossible to write");
+			e.printStackTrace();
+		}
+	}
+
 	public static List<Project> getProjects(Predicate<Project> p) {
 		return projects.stream().filter(p).collect(Collectors.toList());
 	}
@@ -77,17 +88,17 @@ public class Project extends Observable implements Serializable {
 	}
 
 	public String getTimeOn() {
-		return String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(timeOn),
-				TimeUnit.MILLISECONDS.toMinutes(timeOn) % TimeUnit.HOURS.toMinutes(1),
-				TimeUnit.MILLISECONDS.toSeconds(timeOn) % TimeUnit.MINUTES.toSeconds(1));
+		return String.format("%02d:%02d:%02d", TimeUnit.SECONDS.toHours(timeOn),
+				TimeUnit.SECONDS.toMinutes(timeOn) % TimeUnit.HOURS.toMinutes(1),
+				TimeUnit.SECONDS.toSeconds(timeOn) % TimeUnit.MINUTES.toSeconds(1));
 	}
 
 	public void startSession() {
+		timer = new Timer();
 		timer.schedule(new TimerTask() {
 			public void run() {
 				Platform.runLater(() -> {
-					timeOn += 1000;
-					System.out.println(timeOn);
+					++timeOn;
 					setChanged();
 					notifyObservers();
 				});
