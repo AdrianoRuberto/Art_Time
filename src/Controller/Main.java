@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 
 public class Main extends Application implements Initializable, Observer {
 
-	public ListView<String> leftListView = new ListView<>();
+	public ListView<Project> currentListView = new ListView<>();
+	public ListView<Project> endedListView = new ListView<>();
 
 	public Label timePassed = new Label("Select a project");
 	public Tab tabMore;
@@ -32,9 +33,8 @@ public class Main extends Application implements Initializable, Observer {
 	public GridPane gridTimeSpent;
 	public Button cmdSessionStart = new Button();
 
-	private int selectedProject = -1;
+	private Project current;
 	private boolean sessionInUse = false;
-	private List<Project> projects = Project.getProjects(p -> !p.isEnded());
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
@@ -45,7 +45,7 @@ public class Main extends Application implements Initializable, Observer {
 		primaryStage.show();
 		primaryStage.setOnCloseRequest(e -> {
 			if (sessionInUse) {
-				projects.get(selectedProject).stopSession();
+				currentListView.getItems().forEach(Project::stopSession);
 			}
 			Project.saveAllProjects();
 		});
@@ -57,38 +57,37 @@ public class Main extends Application implements Initializable, Observer {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		leftListView.setItems(FXCollections.observableArrayList(projects.stream()
-		                                                                .map(Project::getName)
-		                                                                .collect(Collectors.toList())));
+		List<Project> projects = Project.getProjects(p -> true);
 
 		projects.forEach(p -> p.addObserver(this));
+		currentListView.setItems(FXCollections.observableArrayList(projects.stream()
+		                                                                   .filter(p -> !p.isEnded())
+		                                                                   .collect(Collectors.toList())));
+
+		endedListView.setItems(FXCollections.observableArrayList(projects.stream()
+		                                                                 .filter(Project::isEnded)
+		                                                                 .collect(Collectors.toList())));
 
 		cmdSessionStart.setVisible(false);
 
-		leftListView.setOnMouseClicked(e -> select(leftListView.getSelectionModel().getSelectedIndex()));
-	}
-
-	private void select(int index) {
-		if (index < 0 || index >= projects.size()) {
-			timePassed.setText("Select a project");
-			cmdSessionStart.setVisible(false);
-		} else if (index != selectedProject) {
+		currentListView.getSelectionModel().selectedItemProperty().addListener((p, old, newValue) -> {
 			cmdSessionStart.setVisible(true);
-			if (sessionInUse) {
+			if(sessionInUse) {
 				session(null);
 			}
-			timePassed.setText(projects.get(index).getTimeOn());
+			current = newValue;
 
-			selectedProject = index;
-		}
+			timePassed.setText(newValue.getTimeOn());
+		});
 	}
+
 
 	public void session(ActionEvent event) {
 		if (!sessionInUse) {
-			projects.get(selectedProject).startSession();
+			current.startSession();
 			cmdSessionStart.setText("Stop session");
 		} else {
-			projects.get(selectedProject).stopSession();
+			current.stopSession();
 			cmdSessionStart.setText("Start session");
 		}
 

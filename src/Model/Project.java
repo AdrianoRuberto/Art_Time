@@ -70,8 +70,7 @@ public class Project extends Observable implements Serializable {
 			                                              .map(p -> p.name + ";" + p.begin.getTime() + ";" + p.timeOn + ";" + p.end.getTime())
 			                                              .collect(Collectors.toList()));
 		} catch (IOException e) {
-			System.out.println("Impossible to write");
-			e.printStackTrace();
+			System.out.println("Impossible to write into the file " + PROJECTS_PATH);
 		}
 	}
 
@@ -109,5 +108,10 @@ public class Project extends Observable implements Serializable {
 	public void stopSession() {
 		timer.cancel();
 		timer.purge();
+	}
+
+	@Override
+	public String toString() {
+		return name;
 	}
 }
