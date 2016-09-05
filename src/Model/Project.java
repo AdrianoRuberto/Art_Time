@@ -6,8 +6,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -17,18 +20,19 @@ import java.util.stream.Collectors;
 public class Project extends Observable implements Serializable {
 	private static final String PROJECTS_PATH = "projects.txt";
 	private static List<Project> projects = getProjectsFromFile();
+	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
 	private String name;
-	private Date begin;
-	private long timeOn;
-	private Date end;
+	private LocalDateTime begin;
+	private Duration timeOn;
+	private LocalDateTime end;
 	private Timer timer;
 
-	public Project(String name) {
-		this(name, new Date(), 0, new Date(-1));
+	private Project(String name) {
+		this(name, LocalDateTime.now(), Duration.ZERO, LocalDateTime.MIN);
 	}
 
-	private Project(String name, Date begin, long timer, Date end) {
+	private Project(String name, LocalDateTime begin, Duration timer, LocalDateTime end) {
 		this.name = name;
 		this.begin = begin;
 		this.timeOn = timer;
@@ -36,7 +40,7 @@ public class Project extends Observable implements Serializable {
 	}
 
 	public boolean isEnded() {
-		return end.after(begin);
+		return end.isAfter(begin);
 	}
 
 	private static List<Project> getProjectsFromFile() {
@@ -45,7 +49,7 @@ public class Project extends Observable implements Serializable {
 			Files.lines(Paths.get(PROJECTS_PATH))
 			     .forEach(line -> {
 				     String[] dec = line.split(";");
-				     pro.add(new Project(dec[0], new Date(Long.parseLong(dec[1])), Long.parseLong(dec[2]), new Date(Long.parseLong(dec[3]))));
+				     pro.add(new Project(dec[0], LocalDateTime.parse(dec[1]), Duration.parse(dec[2]), LocalDateTime.parse(dec[3])));
 			     });
 			return pro;
 		} catch (IOException e) {
@@ -59,7 +63,6 @@ public class Project extends Observable implements Serializable {
 			}
 			System.out.println("File " + PROJECTS_PATH + " created");
 
-
 			return new LinkedList<>();
 		}
 	}
@@ -67,7 +70,7 @@ public class Project extends Observable implements Serializable {
 	public static void saveAllProjects() {
 		try {
 			Files.write(Paths.get(PROJECTS_PATH), projects.stream()
-			                                              .map(p -> p.name + ";" + p.begin.getTime() + ";" + p.timeOn + ";" + p.end.getTime())
+			                                              .map(p -> p.name + ";" + p.begin.format(DATE_FORMATTER) + ";" + p.timeOn + ";" + p.end.format(DATE_FORMATTER))
 			                                              .collect(Collectors.toList()));
 		} catch (IOException e) {
 			System.out.println("Impossible to write into the file " + PROJECTS_PATH);
@@ -78,18 +81,39 @@ public class Project extends Observable implements Serializable {
 		return projects.stream().filter(p).collect(Collectors.toList());
 	}
 
+	public void delete() {
+		projects.remove(this);
+	}
+
+	public static Project addProject(String name) {
+		Project p = new Project(name);
+		projects.add(p);
+		return p;
+	}
+
 	public String getName() {
 		return name;
 	}
 
-	public Date getBegin() {
-		return begin;
+	public String getBegin() {
+		return begin.format(DateTimeFormatter.ISO_DATE);
 	}
 
-	public String getTimeOn() {
-		return String.format("%02d:%02d:%02d", TimeUnit.SECONDS.toHours(timeOn),
-				TimeUnit.SECONDS.toMinutes(timeOn) % TimeUnit.HOURS.toMinutes(1),
-				TimeUnit.SECONDS.toSeconds(timeOn) % TimeUnit.MINUTES.toSeconds(1));
+	public String getEnd() {
+		return isEnded() ? end.toString() : "Not ended yet";
+	}
+
+	public String getCurrentTimeOn() {
+		return String.format("%02d:%02d:%02d", timeOn.toHours(), timeOn.toMinutes() % 60, timeOn.getSeconds() % 60);
+	}
+
+	public String getTotalTimePassed() {
+		return String.format("%d s or %d m or %d h or %d d", timeOn.getSeconds(), timeOn.toMinutes(), timeOn.toHours(), timeOn.toDays());
+	}
+
+	public String getHourDayRatio() {
+		LocalDateTime end = isEnded() ? this.end : LocalDateTime.now();
+		return String.format("%d", timeOn.toHours() / (ChronoUnit.DAYS.between(begin, end) + 1));
 	}
 
 	public void startSession() {
@@ -97,7 +121,7 @@ public class Project extends Observable implements Serializable {
 		timer.schedule(new TimerTask() {
 			public void run() {
 				Platform.runLater(() -> {
-					++timeOn;
+					timeOn = timeOn.plusSeconds(1);
 					setChanged();
 					notifyObservers();
 				});

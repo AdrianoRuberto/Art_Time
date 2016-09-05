@@ -8,13 +8,10 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.Tab;
-import javafx.scene.layout.GridPane;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 
+import javax.swing.*;
 import java.net.URL;
 import java.util.List;
 import java.util.Observable;
@@ -30,8 +27,12 @@ public class Main extends Application implements Initializable, Observer {
 	public Label timePassed = new Label("Select a project");
 	public Tab tabMore;
 	public Tab tabTimer;
-	public GridPane gridTimeSpent;
 	public Button cmdSessionStart = new Button();
+
+	public TextField FieldBegin;
+	public TextField FieldEnd;
+	public TextField FieldTimePassed;
+	public TextField FieldRatioHourDay;
 
 	private Project current;
 	private boolean sessionInUse = false;
@@ -72,15 +73,28 @@ public class Main extends Application implements Initializable, Observer {
 
 		currentListView.getSelectionModel().selectedItemProperty().addListener((p, old, newValue) -> {
 			cmdSessionStart.setVisible(true);
-			if(sessionInUse) {
+			if (sessionInUse) {
 				session(null);
 			}
 			current = newValue;
+			if (newValue != null) {
+				timePassed.setText(newValue.getCurrentTimeOn());
 
-			timePassed.setText(newValue.getTimeOn());
+				// More Tab
+				FieldBegin.setText(newValue.getBegin());
+				FieldEnd.setText(newValue.getEnd());
+				FieldTimePassed.setText(newValue.getTotalTimePassed());
+				FieldRatioHourDay.setText(newValue.getHourDayRatio());
+			} else {
+				timePassed.setText("Select a project");
+				FieldBegin.setText("");
+				FieldEnd.setText("");
+				FieldTimePassed.setText("");
+				FieldRatioHourDay.setText("");
+				cmdSessionStart.setVisible(false);
+			}
 		});
 	}
-
 
 	public void session(ActionEvent event) {
 		if (!sessionInUse) {
@@ -94,8 +108,27 @@ public class Main extends Application implements Initializable, Observer {
 		sessionInUse = !sessionInUse;
 	}
 
+	public void newProject(ActionEvent event) {
+		Project p = Project.addProject(JOptionPane.showInputDialog("Enter the name of the project"));
+		currentListView.getItems().add(p);
+		p.addObserver(this);
+	}
+
+	public void deleteProject(ActionEvent event) {
+		if (current != null) {
+			if (sessionInUse)
+				current.stopSession();
+			current.delete();
+			currentListView.getItems().remove(current);
+			endedListView.getItems().remove(current);
+
+		}
+	}
+
 	@Override
 	public void update(Observable o, Object arg) {
-		timePassed.setText(((Project) o).getTimeOn());
+		Project p = ((Project) o);
+		timePassed.setText(p.getCurrentTimeOn());
+		FieldTimePassed.setText(p.getTotalTimePassed());
 	}
 }
