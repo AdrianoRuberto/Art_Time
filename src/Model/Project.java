@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -85,6 +84,14 @@ public class Project extends Observable implements Serializable {
 		projects.remove(this);
 	}
 
+	public void endIt() {
+		end = LocalDateTime.now();
+	}
+
+	public void continueIt() {
+		end = LocalDateTime.MIN;
+	}
+
 	public static Project addProject(String name) {
 		Project p = new Project(name);
 		projects.add(p);
@@ -95,25 +102,16 @@ public class Project extends Observable implements Serializable {
 		return name;
 	}
 
-	public String getBegin() {
-		return begin.format(DateTimeFormatter.ISO_DATE);
+	public LocalDateTime getBegin() {
+		return begin;
 	}
 
-	public String getEnd() {
-		return isEnded() ? end.toString() : "Not ended yet";
+	public LocalDateTime getEnd() {
+		return end;
 	}
 
-	public String getCurrentTimeOn() {
-		return String.format("%02d:%02d:%02d", timeOn.toHours(), timeOn.toMinutes() % 60, timeOn.getSeconds() % 60);
-	}
-
-	public String getTotalTimePassed() {
-		return String.format("%d s or %d m or %d h or %d d", timeOn.getSeconds(), timeOn.toMinutes(), timeOn.toHours(), timeOn.toDays());
-	}
-
-	public String getHourDayRatio() {
-		LocalDateTime end = isEnded() ? this.end : LocalDateTime.now();
-		return String.format("%d", timeOn.toHours() / (ChronoUnit.DAYS.between(begin, end) + 1));
+	public Duration getTimeOn() {
+		return timeOn;
 	}
 
 	public void startSession() {
