@@ -53,9 +53,7 @@ public class Main extends Application implements Initializable, Observer {
 		primaryStage.setScene(new Scene(root));
 		primaryStage.show();
 		primaryStage.setOnCloseRequest(e -> {
-			if (sessionInUse) {
-				currentListView.getItems().forEach(Project::stopSession);
-			}
+			Project.getProjects(p -> true).forEach(Project::stopSession);
 			Project.saveAllProjects();
 		});
 	}

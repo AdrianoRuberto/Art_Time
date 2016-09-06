@@ -1,10 +1,12 @@
 package Model;
 
+import Util.Popup;
 import javafx.application.Platform;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -17,7 +19,9 @@ import java.util.stream.Collectors;
  * Created by Adriano on 16.08.2016.
  */
 public class Project extends Observable implements Serializable {
-	private static final String PROJECTS_PATH = "projects.txt";
+	private static final Path DIR_PATH = Paths.get(System.getenv("APPDATA") + "\\ArtTime");
+	private static final String PROJECTS_PATH = System.getenv("APPDATA") + "\\ArtTime\\projects.txt";
+
 	private static List<Project> projects = getProjectsFromFile();
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
@@ -55,10 +59,11 @@ public class Project extends Observable implements Serializable {
 			System.out.println("No " + PROJECTS_PATH + " founded");
 			System.out.println("Creating one ...");
 			try {
+				Files.createDirectory(DIR_PATH);
 				Files.write(Paths.get(PROJECTS_PATH), new LinkedList<String>());
 			} catch (IOException e1) {
-				System.out.println("Impossible to create the file");
-				e1.printStackTrace();
+				Popup.error("Creating file error", "Impossible to create the file at " + PROJECTS_PATH);
+				System.exit(1);
 			}
 			System.out.println("File " + PROJECTS_PATH + " created");
 
@@ -128,8 +133,10 @@ public class Project extends Observable implements Serializable {
 	}
 
 	public void stopSession() {
-		timer.cancel();
-		timer.purge();
+		if (timer != null) {
+			timer.cancel();
+			timer.purge();
+		}
 	}
 
 	@Override
