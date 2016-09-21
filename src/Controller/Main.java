@@ -200,12 +200,16 @@ public class Main extends Application implements Initializable, Observer {
 	}
 
 	private String getTotalTimePassed(Duration time) {
-		return String.format("%d s or %d m or %d h or %d d", time.getSeconds(), time.toMinutes(), time.toHours(), time.toDays());
+		long s = time.getSeconds();
+		double m = s / 60.0;
+		double h = m / 60.0;
+		double d = h / 24.0;
+		return String.format("%.1f d | %.2f h | %.3f m | %d s", d, h, m, s);
 	}
 
 	private String getHourDayRatio(Project p) {
 		LocalDateTime end = p.isEnded() ? p.getEnd() : LocalDateTime.now();
-		return String.format("%d", p.getTimeOn().toHours() / (ChronoUnit.DAYS.between(p.getBegin(), end) + 1));
+		return String.format("%.2f", p.getTimeOn().getSeconds() / 3600.0 / (ChronoUnit.DAYS.between(p.getBegin(), end) + 1));
 	}
 
 	@Override
@@ -213,5 +217,6 @@ public class Main extends Application implements Initializable, Observer {
 		Project p = ((Project) o);
 		timePassed.setText(durationToChrono(p.getTimeOn()));
 		FieldTimePassed.setText(getTotalTimePassed(p.getTimeOn()));
+		FieldRatioHourDay.setText(getHourDayRatio(p));
 	}
 }
