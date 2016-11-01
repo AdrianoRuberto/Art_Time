@@ -44,12 +44,13 @@ public class Main extends Application implements Initializable, Observer {
 
 	private Project current;
 	private boolean sessionInUse = false;
+	private static Stage primaryStage;
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		Parent root = FXMLLoader.load(getClass().getResource("/View/main.fxml"));
+		this.primaryStage = primaryStage;
 		primaryStage.setTitle("Art Time");
-
 		primaryStage.setScene(new Scene(root));
 		primaryStage.show();
 		primaryStage.setOnCloseRequest(e -> {
@@ -62,7 +63,7 @@ public class Main extends Application implements Initializable, Observer {
 		launch(args);
 	}
 
-	private void noProjectSelected() {
+	private void resetProjectSelection() {
 		tabMore.setDisable(true);
 		tabTimer.setDisable(false);
 		cmdSessionStart.setVisible(false);
@@ -83,7 +84,7 @@ public class Main extends Application implements Initializable, Observer {
 		                                                                 .filter(Project::isEnded)
 		                                                                 .collect(Collectors.toList())));
 
-		noProjectSelected();
+		resetProjectSelection();
 
 		endedListView.getSelectionModel().selectedItemProperty().addListener((p, oldProj, newProj) -> {
 			if (current != null && sessionInUse) {
@@ -91,7 +92,7 @@ public class Main extends Application implements Initializable, Observer {
 			}
 
 			if (newProj == null) {
-				noProjectSelected();
+				resetProjectSelection();
 			} else {
 				currentListView.getSelectionModel().clearSelection();
 
@@ -119,7 +120,7 @@ public class Main extends Application implements Initializable, Observer {
 			}
 
 			if (newProj == null) {
-				noProjectSelected();
+				resetProjectSelection();
 			} else {
 				endedListView.getSelectionModel().clearSelection();
 				current = newProj;
@@ -215,7 +216,9 @@ public class Main extends Application implements Initializable, Observer {
 	@Override
 	public void update(Observable o, Object arg) {
 		Project p = ((Project) o);
-		timePassed.setText(durationToChrono(p.getTimeOn()));
+		String s = durationToChrono(p.getTimeOn());
+		timePassed.setText(s);
+		primaryStage.setTitle(s);
 		FieldTimePassed.setText(getTotalTimePassed(p.getTimeOn()));
 		FieldRatioHourDay.setText(getHourDayRatio(p));
 	}
